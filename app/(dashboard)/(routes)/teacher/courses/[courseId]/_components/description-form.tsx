@@ -1,12 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import * as z from "zod";
-import axios from "axios";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Pencil } from "lucide-react";
-
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Form,
   FormControl,
@@ -15,58 +10,78 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Pencil } from "lucide-react";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import axios from "axios";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { Textarea } from "@/components/ui/textarea";
 import { Course } from "@prisma/client";
 
-interface TitleFormProps {
+interface DescriptionFormProps {
   initialData: Course;
   courseId: string;
 }
 
 const formSchema = z.object({
-  title: z.string().min(1, { message: "Title is required" }),
+  description: z.string().min(1, { message: "Description is required" }),
 });
-
-export const TitleForm = ({ initialData, courseId }: TitleFormProps) => {
+export const DescriptionForm = ({
+  initialData,
+  courseId,
+}: DescriptionFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const router = useRouter();
-
   const toggleEdit = () => setIsEditing((current) => !current);
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData,
+    defaultValues: {
+      description: initialData?.description || "",
+    },
   });
 
-  const { isSubmitting, isValid } = form.formState;
+  const { isValid, isSubmitting } = form.formState;
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       await axios.patch(`/api/courses/${courseId}`, values);
       toast.success("Course updated");
       toggleEdit();
       router.refresh();
-    } catch {
-      toast.error("something went wrong");
+    } catch (error) {
+      toast.error("something weent wrong");
     }
   };
+
   return (
-    <div className="mt-6 border bg-slate-100 rounded-md p-4">
+    <div className="mt-6 border rounded-md p-4 bg-slate-100">
       <div className="flex font-medium items-center justify-between">
-        Course Title
+        Course Description
         <Button onClick={toggleEdit} variant="ghost">
           {isEditing ? (
             <>Cancel</>
           ) : (
             <>
               <Pencil className="h-4 w-4 mr-2" />
-              Edit Title
+              Edit Description
             </>
           )}
         </Button>
       </div>
-      {!isEditing && <p className="text-sm mt-2">{initialData.title}</p>}
+      {!isEditing && (
+        <p
+          className={cn(
+            "text-sm mt-2",
+            !initialData.description && "text-slate-500 italic"
+          )}
+        >
+          {initialData.description || "No Description"}
+        </p>
+      )}
       {isEditing && (
         <Form {...form}>
           <form
@@ -75,13 +90,13 @@ export const TitleForm = ({ initialData, courseId }: TitleFormProps) => {
           >
             <FormField
               control={form.control}
-              name="title"
+              name="description"
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input
+                    <Textarea
                       disabled={isSubmitting}
-                      placeholder="e.g. Facebook Ads"
+                      placeholder="e.g. Become a master at Media Buying"
                       {...field}
                     />
                   </FormControl>
